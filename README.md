@@ -180,5 +180,8 @@ python scripts/workflow.py resume --output runs/commonbase-spatial \
 
 本仓库在论文编译目录旁，**清理 paper-build 时须保留或先移出本仓库**。
 详细必传/选传清单、目录结构及打包命令见 [上传与跨机器交接清单](docs/TRANSFER_GUIDE.md)。
+训练完成后的权重统一交付至 [ModelScope Velixx/TCR](https://modelscope.cn/models/Velixx/TCR)，
+使用 `fastwam/<run-id>/<suite>/step_XXXXXX/` 子目录。
+交接清单第 6 节规定了本地执行端应安排的自动上传流程；**当前训练入口不自动上传，本次仅更新文档**。
 另见 [验证记录](docs/VALIDATION.md)、[来源与修改范围](docs/PROVENANCE.md)。
 代码基于 [FastWAM](https://github.com/yuantianyuan01/FastWAM)，保留其 MIT 许可及第三方原始许可头。

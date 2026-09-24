@@ -1,6 +1,6 @@
 # 上传与跨机器交接清单
 
-先区分目的地：**GitHub 只放代码；模型/数据传训练机器或融合服务器，不提交 Git。**
+先区分目的地：**GitHub 只放代码；训练完成的权重上传 ModelScope `Velixx/TCR`；数据另行传输，不提交 Git。**
 当前代码仓库：https://github.com/honglei-lab/FastWAM
 
 ## 1. 上传 GitHub：本次发布内容
@@ -141,7 +141,7 @@ sha256sum FastWAM-fusion-handoff.tar
 ```
 
 该例子只打包上述文件，不打包全部训练 state/数据；路径改变时务必同步核对实际引用关系。
-推荐通过 SSH/SFTP/rsync 传到指定服务器，不上传 GitHub。
+需要直接迁移到融合服务器时可用 SSH/SFTP/rsync；统一权重交付目的地见第 6 节，不上传 GitHub。
 接收端复算 SHA256 对比，传输中断时不要把不完整归档当作有效结果。
 
 ## 4. 如果需要续训，再额外传这些
@@ -170,3 +170,75 @@ du -sh assets data checkpoints artifacts/common-base runs
 ```
 
 路径未生成时出现不存在提示是正常的。先选文件、看大小、校验，再传输。
+
+## 6. 训练完成后上传 ModelScope：本地执行端约定
+
+目的地：[Velixx/TCR](https://modelscope.cn/models/Velixx/TCR)。
+**本节是交给本地执行端/监督任务的操作要求，不是已实现的上传功能。当前训练入口不会自动上传，
+也没有上传开关；需要执行端安排“训练成功 → 文件验收 → 上传 → 远端校验”。本次不修改训练代码。**
+
+### 远端目录与必传文件
+
+四个专家使用同一个唯一 `<run-id>`，建议包含日期、训练 seed 和共同 base 哈希前缀；
+同一天重跑也必须换新 ID。`<suite>` 为 `spatial`、`object`、`goal`、`long`。
+以下为目标布局，步数按实际结果填写，不表示已经存在：
+
+```text
+Velixx/TCR/
+  fastwam/<run-id>/
+    common-base/
+      base.json
+      common-base.pt
+    <suite>/step_XXXXXX/
+      step_XXXXXX.pt
+      config.yaml
+      dataset_stats.json
+      launch.json
+      common-base-init-rankN.json   # 实际全部 rank，不是只传一个
+      SOURCE_SHA256.json
+      DELIVERY.md
+      FILES_SHA256.json
+      UPLOAD_COMPLETE.json
+```
+
+- 权重取自该 run 的 `checkpoints/weights/step_XXXXXX.pt`，包含 `mot` 和 `proprio_encoder`；
+  不是 optimizer state，也不能只导出动作头。默认只交付训练结束的最终 checkpoint。
+- `common-base/` 上传一次，由四专家共用；使用实际 manifest 引用的完整共同起点，
+  保持文件名及相对关系，不要修改 manifest 哈希。官方冻结资源按第 2 节匹配下载，无需四次重复上传。
+- 每个专家分别上传该 run 的配置、统计和所有初始化回执，不能跨套件混用。
+- `DELIVERY.md` 由执行端整理：套件、实际 step、代码 commit、共同 base 哈希及远端路径、
+  官方资源固定版本、原 checkpoint 来源、选择依据，以及“未评测”或真实评测结果的位置。
+  最后一步不等于最佳结果；若另选最佳 checkpoint，使用独立 step 目录并附选择依据。
+- `FILES_SHA256.json` 是执行端准备的交付清单，记录每个交付文件的相对路径、字节数及 SHA256，
+  同时记录共享 base 的远端路径及哈希；不包含清单自身和完成标记，避免自引用。
+  `UPLOAD_COMPLETE.json` 也是执行端在验收后准备的标记，**不是训练器现有产物**。
+
+### 触发与完成条件
+
+1. 训练进程成功退出，确认实际 step 达到计划总步数、checkpoint 保存结束且可完整读取；
+   不上传正在写入的文件，不把中断后的中间保存点自动标为训练完成。
+2. 检查该 run 的全部 rank 回执与共同 base 一致；已有其他专家时一起审计。
+   四个分支全部就绪后，必须再运行第 3 节的四分支检查并得到 `accepted: true`。
+3. 固定待上传文件及哈希，先上传共享 base，再上传该专家文件。
+   每个专家完成后即可独立交付，不必等四个全训练完；单专家交付不代表四专家审计已通过。
+4. 核对远端路径、大小和 SHA256（服务端未提供可靠哈希时下载复算）。
+   全部一致后，最后上传 `UPLOAD_COMPLETE.json`，记录 suite、step、run-id、代码 commit、
+   base 哈希、交付清单 SHA256 和校验时间。无标记或校验不符的目录不能用于正式融合。
+
+### 凭据、失败补传与范围
+
+- 使用具有 `Velixx/TCR` 写权限的 ModelScope token，由执行端安全注入环境变量
+  `MODELSCOPE_API_TOKEN`。不写入仓库、命令行参数、训练配置、上传文件或日志，也不需要在聊天里提供。
+- 执行端可使用 [ModelScope 官方 SDK 上传接口](https://github.com/modelscope/modelscope/blob/v1.34.0/modelscope/hub/api.py)
+  的 `upload_folder` / `upload_file`，仓库 ID 为 `Velixx/TCR`，类型为 model，
+  远端 `path_in_repo` 必须限定在上述子目录。上传用的依赖和权限由执行端单独准备。
+- 只按必传清单上传，不直接递归上传整个 run。不要覆盖仓库根目录 `README.md`、
+  `configuration.json`、`.gitattributes`，不改变仓库可见性；上传前确认允许在目标仓库发布这些产物。
+- 网络失败保留本地文件和失败记录，只重试上传，不重训、不删除权重。
+  远端同路径且哈希一致可跳过；哈希不同则停止并使用新 run-id，不静默覆盖。
+  验收前不写完成标记，已完成的目录保持不变。
+- 默认不上传全部中间 checkpoint、`checkpoints/state/`、训练数据、文本缓存、环境和凭据。
+  续训备份仍按第 4 节另外安排；TCR 校准数据按独立管线准备。
+
+执行端交接时应报告每个专家的完整 ModelScope 子目录、文件总大小、校验结果及待重试项。
+本地权重保留到接收端完成下载、哈希核对和加载验收；上传完成不等于模型成功率或 TCR 效果已验证。

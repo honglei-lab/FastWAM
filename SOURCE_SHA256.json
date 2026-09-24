@@ -1,7 +1,7 @@
 {
   ".gitignore": "67dd4b3b9855d050898006431565197506910981b477fc9ccf48a03decea0e53",
   "LICENSE": "8379dddfbbb1154ad9cc57f008f1f8d4a8d26c3de99bd6b36aa4d8067888aa92",
-  "README.md": "84fbc76c2bed432ce509c633825fbac788916b1b8ff8563e949a44b1fa2980cc",
+  "README.md": "0ba6a89a468439452b12e5205791199b1979146f6aa41948ed2b3e95fd98c829",
   "configs/accelerate-zero1.yaml": "ca7cb05632b2db4fc53daea0db5e98aabc5ba05b2760a9cff021da5d6ac878a2",
   "configs/assets.lock.json": "4730d90fd1fdd240e82174d4a32dde81d5f57f6803a13ecdda6f0f24fb3d7511",
   "configs/data/libero_2cam.yaml": "09f8b9196b60dc9b061f19879d0c7d3dcad7b649fe8fbcef84d7421451089590",
@@ -10,7 +10,7 @@
   "configs/task/libero_uncond_2cam224_1e-4.yaml": "27bdc30545aa06bca81137690a241d469d5a67a433881976bd79da3d4171d1a0",
   "configs/train.yaml": "3d030cfd35ebb835326ba14e567aba67f7a9303e4f7d0bfa857fc068959502e7",
   "docs/PROVENANCE.md": "2f49cc75b1efdd996823d31ea471d3a96013667a9144aa527af45ef84e2e6ebd",
-  "docs/TRANSFER_GUIDE.md": "d30a46895f15d37f912434c4b639bb94aba86b8194a19c5858efcffe881b96c3",
+  "docs/TRANSFER_GUIDE.md": "037aaea4de7d596f4dcbd1e7c13129cdb7bfe5a90c60484daee6c4048b80b586",
   "docs/VALIDATION.md": "20678cffc9db6bccf5f1918ad79e6c3faf71a2a16f12aed3db2cf50b425f48ce",
   "fastwam/__init__.py": "c4149c5ff0f9abd1517360daf761e692feb8570eb7a0caa2dfde52d4412c3e23",
   "fastwam/common_base.py": "dfce6c53cfbf82faf32b8d72a6ffdd6b504b59dfce4edb6b6656797d47b44ff4",
