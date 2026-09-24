@@ -1,0 +1,31 @@
+{
+  "checked_at": "2026-09-24",
+  "wan": {
+    "repo_id": "Wan-AI/Wan2.2-TI2V-5B",
+    "revision": "921dbaf3f1674a56f47e83fb80a34bac8a8f203e",
+    "repo_type": "model",
+    "directory": "assets/Wan-AI/Wan2.2-TI2V-5B",
+    "patterns": ["diffusion_pytorch_model*.safetensors", "diffusion_pytorch_model.safetensors.index.json", "Wan2.2_VAE.pth", "models_t5_umt5-xxl-enc-bf16.pth", "config.json"]
+  },
+  "tokenizer": {
+    "repo_id": "Wan-AI/Wan2.1-T2V-1.3B",
+    "revision": "37ec512624d61f7aa208f7ea8140a131f93afc9a",
+    "repo_type": "model",
+    "directory": "assets/Wan-AI/Wan2.1-T2V-1.3B",
+    "patterns": ["google/umt5-xxl/*", "LICENSE.txt"]
+  },
+  "libero": {
+    "repo_id": "yuanty/LIBERO-fastwam",
+    "revision": "ee018b997c430bb12b5bf3c892d744798c5a2f91",
+    "repo_type": "dataset",
+    "directory": "data/downloads",
+    "patterns": ["libero_*_no_noops_lerobot.tar.gz"]
+  },
+  "released-policy": {
+    "repo_id": "yuanty/fastwam",
+    "revision": "8eaceeb24c3cc92ff2a9c9a9d266a4941b836705",
+    "repo_type": "model",
+    "directory": "checkpoints/released-policy",
+    "patterns": ["libero_uncond_2cam224.pt", "libero_uncond_2cam224_dataset_stats.json"]
+  }
+}
