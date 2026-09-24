@@ -35,10 +35,7 @@ python scripts/source_manifest.py --check
 ### 新机器能下载
 
 只需要上述代码。按 README 安装环境，运行固定版本下载、解压、ActionDiT 和文本缓存准备。
-然后明确选择 fresh Wan 或某一份已有完整 policy，建立一次共同 base。
-
-如果要继承旧训练，另传**最终选定的那一份完整 `.pt`**；不要把四个旧专家各自当成新分支的共同 base。
-当前尚未替你选这份文件。
+然后从官方 Wan 权重建立一次完整共同 base，不需要本项目提供微调 checkpoint。
 
 ### 新机器不能下载，或要复制已封存的同一起点
 
@@ -54,10 +51,9 @@ python scripts/source_manifest.py --check
 | base.json 实际引用的完整 checkpoint | 复用已封存 base 时必须 | 仅传 JSON 不包含任何模型权重 |
 | `data/downloads/*.tar.gz` | 已传解压数据时不必传 | 原始数据备份 |
 
-fresh Wan 方案的 checkpoint 通常是 `artifacts/common-base/common-base.pt`，连同 JSON 一起传即可。
-已有 policy 方案的 JSON 引用可能指向仓库外部，**必须查看其中的 checkpoint 字段并带上实际文件**。
-最稳妥的方法是在新机器对同一份完整权重重新运行 seal，核对原/新
-`checkpoint_sha256` 和 `initial_model_sha256` 完全一致，再启动四个分支。
+完整起点为 `artifacts/common-base/common-base.pt`，连同 JSON 一起传即可。
+保留它与 JSON 的相对位置；确认文件 SHA256 与 JSON 中的 `checkpoint_sha256` 一致。
+训练入口还会检查加载后的 `initial_model_sha256`，再启动各分支。
 不要直接改 JSON 中的哈希来绕过校验。
 
 当前入口会校验封存清单里的所有模型资源，即使某资源在缓存训练时不会实际加载，也不能随意删掉。
@@ -144,8 +140,7 @@ PY
 sha256sum FastWAM-fusion-handoff.tar
 ```
 
-该例子只打包上述文件，不打包全部训练 state/数据；实际使用旧 policy 作为 base 时，
-必须将例子中的 base 路径换成真正引用的文件，并一并交代引用关系。
+该例子只打包上述文件，不打包全部训练 state/数据；路径改变时务必同步核对实际引用关系。
 推荐通过 SSH/SFTP/rsync 传到指定服务器，不上传 GitHub。
 接收端复算 SHA256 对比，传输中断时不要把不完整归档当作有效结果。
 

@@ -5,7 +5,7 @@
 目录扁平：模型和训练器位于 `fastwam/`，不再套 `src/src`。
 
 **状态：代码与 CPU 回归测试已验证；尚未在全新环境完成大权重下载及真实多卡训练。不要直接排四轮长训练，先做下面的验收。**
-共同 checkpoint 仍待选择；没有开始训练或删除旧专家。GitHub 仅发布代码与文档，不含权重和数据。
+训练起点使用官方 Wan 预训练权重；GitHub 仅发布代码与文档，不含权重和数据。
 
 ## 1. 先分清三种权重
 
@@ -15,13 +15,8 @@
 | ActionDiT 插值文件 | 从视频主干转换的动作主干，不含新建接口 | 不能 |
 | sealed common base | 完整 `mot`（含动作接口）及 `proprio_encoder`，同时锁定外部冻结资源 | 可以；四专家必须加载同一份 |
 
-你有两个明确选择，**只能选一个**：
-
-- 从 Wan 起步：只初始化一次完整 Fast-WAM，保存为共同 base，四个分支从它重新训练。
-- 保留已有训练成果：明确选一份已有完整 Fast-WAM checkpoint，严格校验后作为四个新分支共同起点。这是 weights-only warm start，步数从 0 开始，不继承它的优化器。
-
-第二种不会丢掉旧文件，但只继承被选中那一份的学习成果。让原来的四份专家各自续训，不能追溯修复历史上不同的完整初始化。
-官方发布的 LIBERO policy 已做过任务训练，不能称为“没有接触 LIBERO 的预训练 base”；若选它，实验需记录这段数据暴露。
+标准流程：下载官方 Wan 权重 → 转换 ActionDiT → 初始化一次动作/状态接口 →
+封存完整共同 base → 四个分支从同一起点训练。无需任何本项目微调权重。
 
 ## 2. 环境
 
@@ -52,7 +47,6 @@ python -m unittest discover -s tests -v
 - [Wan2.2-TI2V-5B](https://huggingface.co/Wan-AI/Wan2.2-TI2V-5B)
 - [Wan2.1 tokenizer](https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B)
 - [Fast-WAM 的 LIBERO 数据](https://huggingface.co/datasets/yuanty/LIBERO-fastwam)
-- 可选 [已训练 LIBERO policy](https://huggingface.co/yuanty/fastwam)
 
 下载脚本使用 `configs/assets.lock.json` 中固定的 commit，不跟随可变的 main。
 Wan 模型资源约 34 GB，此外还有数据、ActionDiT、完整 base、每个专家及含优化器状态的训练快照；
@@ -68,10 +62,6 @@ python scripts/extract_libero.py --execute
 数据只使用仓库提供的四个旧格式 `libero_*_no_noops_lerobot.tar.gz`，**不混用 `lerobot_v30/`**。
 Long 对应 `libero_10_no_noops_lerobot`。解压器拒绝路径穿越、链接及已有目标目录。
 下载/解压原始数据集不会连接真机，也不是在线成功率评测。
-
-只有确定要用官方**已训练** policy 时，另运行
-`python scripts/download_assets.py released-policy --execute`；
-文件下载到 `checkpoints/released-policy/`，不会自动被选为共同 base。
 
 本包使用官方 `Wan2.2_VAE.pth`，不依赖另一仓库的转换版 VAE。
 该下载路径已核对，源代码具有原始 VAE 转换逻辑；本次未下载该大文件做完整加载测试。
@@ -94,9 +84,7 @@ ActionDiT 转换在 CPU 执行，不是训练；输出已有时拒绝覆盖。
 
 ## 5. 建立一份完整共同 base
 
-下面两个方案只执行其中一个。未加 `--execute` 时仅预览。
-
-### A：从 Wan 构造新完整起点
+从官方下载的 Wan 权重构造完整起点。未加 `--execute` 时仅预览。
 
 ```bash
 python scripts/workflow.py seal --fresh-wan --manifest artifacts/common-base/base.json
@@ -105,18 +93,6 @@ python scripts/workflow.py seal --fresh-wan --manifest artifacts/common-base/bas
 
 固定初始化 seed=3407，**在创建模型前设定**。动作和状态接口只在这里新建一次，
 完整权重写到 `artifacts/common-base/common-base.pt`，并严格加载回读验证。
-
-### B：用一份已有完整 checkpoint
-
-将下面路径换成你最终选定的、可信的完整权重；当前没有预选：
-
-```bash
-python scripts/workflow.py seal --checkpoint /ABS/PATH/CHOSEN_FULL_POLICY.pt --manifest artifacts/common-base/base.json
-# 确定选择后，在同一命令末尾加 --execute
-```
-
-不复制或改写源权重。此 manifest 会引用该文件，迁移机器时必须同时传它，或在新机器重新封存同一文件。
-不要用 pickle 权重加载不可信来源的文件。
 
 封存会记录 checkpoint SHA256、完整模型参数/缓冲区指纹、外部模型资源哈希和配置哈希。
 训练前再次校验；模型加载后还会比对封存时的完整指纹，任何缺项、错形状、非有限值或漂移都停止。
@@ -163,7 +139,7 @@ done
 这是**串行**四任务，失败即停止，不会偷偷启动四组竞争相同 GPU 的任务。
 默认 lr=1e-4、weight_decay=1e-2、BF16、cosine schedule；训练 seed 默认3407。
 batch 参数是每卡值，全局 batch = batch × 卡数 × grad-accum。
-当前小 batch 示例改变了历史训练的全局 batch，不应称为原超参数复现；需要复现时先核对旧配置再设置。
+小 batch 示例用于安全起步，不是论文超参数复现；正式训练前需确定全局 batch 和训练预算。
 不自动删除中间快照，不包含 rollout 成功率评测或“自动挑选最好 checkpoint”。
 
 四分支均启动并产生完整初始化回执后检查：

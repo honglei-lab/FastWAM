@@ -22,7 +22,7 @@ MIT LICENSE 保留 FastWAM 作者署名；LeRobot 等第三方文件保留原许
 - 独立打包布局、CPU 回归测试、训练手册。
 
 没有宣称修改 TCR 算法、修复已经训练好的四个专家、或提高模型成功率。
-没有把已有训练 checkpoint 作为默认 base：选择仍由使用者决定。
+标准训练流程仅依赖官方 Wan 预训练资源，不依赖本项目微调 checkpoint。
 
 依赖选择参考：[PyTorch 官方历史安装命令](https://pytorch.org/get-started/previous-versions/)、
 [TorchCodec 官方兼容表](https://github.com/meta-pytorch/torchcodec#compatibility-with-torch-versions)。
